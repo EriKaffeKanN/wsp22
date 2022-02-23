@@ -1,0 +1,7 @@
+h1 = category["name"]
+
+a href="/categories/#{category["id"]}/new" New review
+section.reviews
+    - for review in reviews
+        article.review
+            a href="/categories/#{category["id"]}/#{review["id"]}" = review["title"]
