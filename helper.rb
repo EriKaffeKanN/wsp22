@@ -6,6 +6,20 @@ def connect_to_db(path)
     return db
 end
 
+def authenticate(ownerId, reqPermissionLevel)
+    db = connect_to_db()
+
+    userId = session[:user_id]
+    userPermissionLevel = db.execute("SELECT permission FROM user WHERE user_id = ?", userId).first
+    if userId == nil
+        return false
+    end
+    
+    if userId == ownerId or userPermissionLevel >= reqPermissionLevel
+        return true
+    end
+end
+
 # Slim
 
 helpers do

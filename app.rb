@@ -6,19 +6,13 @@ require 'SQLite3'
 require_relative 'helper'
 
 enable :sessions
-# TODO: inte array
-# TODO: används sessions kanske för att veta vilken kategori det bör vara
+
+get "/login"
 
 post "/categories/:category_id/:review_id/delete" do
     db = connect_to_db("db/reviewsplus.db")
     db.execute("DELETE FROM review WHERE id = ?", params["review_id"])
     redirect("/categories/#{params["category_id"]}")
-end
-
-get "/categories/:category_id/:review_id" do
-    db = connect_to_db("db/reviewsplus.db")
-    review = db.execute("SELECT * FROM review WHERE id = ?", params["review_id"])
-    slim(:"reviews/display", locals:{review:review[0]})
 end
 
 post "/categories/:id/new" do
@@ -34,6 +28,12 @@ get "/categories/:id/new" do
     db = connect_to_db("db/reviewsplus.db")
     category = db.execute("SELECT * FROM category WHERE id = ?", params["id"])
     slim(:"reviews/new", locals:{category:category[0]})
+end
+
+get "/categories/:category_id/:review_id" do
+    db = connect_to_db("db/reviewsplus.db")
+    review = db.execute("SELECT * FROM review WHERE id = ?", params["review_id"])
+    slim(:"reviews/display", locals:{review:review[0]})
 end
 
 post "/categories/new" do
