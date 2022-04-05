@@ -14,8 +14,9 @@ html lang="en"
                 a href="/categories" Browse categories 
                 a href="" Trending reviews
                 // TODO: Gör så att det bara går om man är inloggad
-                a href="" Create
+                - if getUser != nil
+                    a#create href="" Create
             .loginHeader 
-                a href="/login" Log in 
-                a href="/signup" Sign up
+                a href="/users/login" Log in 
+                a href="/users/new" Sign up
         ==yield

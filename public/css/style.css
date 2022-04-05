@@ -63,6 +63,15 @@ body > header nav > a {
     color: black;
 }
 
+#create {
+    border-radius: 4px;
+    border: 2px solid black;
+    height: 50%;
+    background-color: rgb(206, 131, 26);
+    color: white;
+    text-decoration: none;
+}
+
 body > header nav > a:hover {
     background-color: rgb(240, 240, 240);
 }

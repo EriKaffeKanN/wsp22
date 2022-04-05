@@ -2,12 +2,23 @@
 require 'sinatra'
 require 'slim'
 require 'SQLite3'
+require 'BCrypt'
 
-require_relative 'helper'
+require_relative 'model'
 
 enable :sessions
 
-get "/login"
+post "/users" do
+    
+end
+
+get "/users/new" do
+    slim(:"users/new", locals:{})
+end
+
+get "/users/" do
+    slim(:"users/list", locals:{})
+end
 
 post "/categories/:category_id/:review_id/delete" do
     db = connect_to_db("db/reviewsplus.db")

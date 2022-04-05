@@ -6,6 +6,13 @@ def connect_to_db(path)
     return db
 end
 
+def register_user(userName, email, password, dbPath)
+{
+    db = connect_to_db(dbPath)
+    pwDigest = BCrypt::Password.create(password)
+    db.execute("INSERT INTO user (name, email, password) VALUES (?, ?, ?)", userName, email, pwDigest)
+}
+
 def authenticate(ownerId, reqPermissionLevel)
     db = connect_to_db()
 
@@ -26,5 +33,9 @@ helpers do
     def users
         db = connect_to_db("db/reviewsplus.db")
         db.execute("SELECT * FROM users")
+    end
+
+    def getUser
+        session[:user_id]
     end
 end
