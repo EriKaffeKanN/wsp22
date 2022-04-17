@@ -16,7 +16,14 @@ html lang="en"
                 // TODO: Gör så att det bara går om man är inloggad
                 - if getUser != nil
                     a#create href="" Create
-            .loginHeader 
-                a href="/users/login" Log in 
-                a href="/users/new" Sign up
+                    
+            - if getUser == nil
+                .loginHeader 
+                    a href="/users/login" Log in 
+                    a href="/users/new" Sign up
+            - else 
+                .logout
+                    form action="/users/logout" method="post" 
+                        input type="submit" value="Log out"/
+            
         ==yield
