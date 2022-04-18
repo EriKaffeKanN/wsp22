@@ -111,21 +111,17 @@ get "/categories/new" do
 end
 
 get "/categories/:id" do
-    db = connect_to_db(dbPath)
-    cat_id = params[:id]
-    category = db.execute("SELECT * FROM category WHERE id = ?", cat_id).first
-    reviews = db.execute("SELECT * FROM review WHERE category_id = ?", cat_id)
+    category = get_category(params[:id], dbPath)
+    reviews = get_reviews(params[:id])
     mod = userIsModerator(params[:id], dbPath)
     slim(:"reviews/list", locals:{category:category, reviews:reviews, mod:mod})
 end
 
 get "/categories" do
-    db = connect_to_db(dbPath)
-    categories = db.execute("SELECT * FROM category")
+    categories = get_categories
     slim(:"categories/list", locals:{data:categories})
 end
 
 get "/" do
-    db = connect_to_db(dbPath)
-    slim(:index, locals:{})
+    slim(:index)
 end

@@ -130,11 +130,11 @@ def authorize_user(ownerId, categoryId, dbPath)
     if session[:user_id] == nil
         return false
     end
-    userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
+    user_is_admin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
     p "TEST"
     p "USER ID: #{session[:user_id]}"
     p "OWNER ID: #{ownerId}"
-    if (session[:user_id] == ownerId) or (userIsModerator(categoryId, dbPath)) or (userIsAdmin)
+    if (session[:user_id] == ownerId) or (userIsModerator(categoryId, dbPath)) or (user_is_admin)
         return true
     end
     return false
@@ -147,6 +147,11 @@ def userIsModerator(categoryId, dbPath)
     return moderatorIdsArray.include?(session[:user_id])
 end
 
+def get_reviews(categoryId)
+    db = connect_to_db("db/reviewsplus.db")
+    return db.execute("SELECT * FROM review WHERE category_id = ?", categoryId)
+end
+
 # Slim
 
 helpers do
@@ -155,7 +160,7 @@ helpers do
         db.execute("SELECT * FROM users")
     end
 
-    def getUser
+    def get_user
         if session[:user_id] == nil
             return nil
         end
@@ -164,7 +169,12 @@ helpers do
         return user["name"]
     end
 
-    def userIsAdmin
+    def get_categories
+        db = connect_to_db("db/reviewsplus.db")
+        return db.execute("SELECT * FROM category")
+    end
+
+    def user_is_admin
         if session[:user_id] == nil
             return false
         end
