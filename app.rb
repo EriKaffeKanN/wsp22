@@ -16,7 +16,7 @@ end
 # --- Misc ---
 before do
     if request.path_info != "/users/new"
-        if request.path_info.include?("/new") && getUser == nil
+        if (request.path_info.include?("/new") || request.path_info.include?("/edit")) && session[:user_id] == nil
             session[:error] = "You need to log in to perform this action"
             redirect("/error")
         end
@@ -24,7 +24,7 @@ before do
 end
 
 get "/error" do
-    "Error: #{session[:error]}"
+    "Error: #{session[:error]}" + '<a href="/">Return to homepage</a>'
 end
 
 # --- Standard routes ---
@@ -70,43 +70,39 @@ get "/users/" do
 end
 
 post "/categories/:category_id/:review_id/delete" do
-    db = connect_to_db(dbPath)
     # Authorize
-    ownerId = db.execute("SELECT author_id FROM review WHERE id = ?", params[:review_id])
-    moderatorIds = db.execute("SELECT mod_id FROM moderator_review_relation WHERE review_id = ?", params[:review_id])
-    if !authorize_user(ownerId, moderatorIds, dbPath)
+    review = get_review(params[:review_id], dbPath)
+    ownerId = review["author_id"]
+    categoryId = review["category_id"]
+    if !authorize_user(ownerId, categoryId, dbPath)
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
-    db.execute("DELETE FROM review WHERE id = ?", params[:review_id])
+    delete_review(params[:review_id], dbPath)
     redirect("/categories/#{params[:category_id]}")
 end
 
 post "/categories/:id/new" do
-    db = connect_to_db(dbPath)
     title = params[:review_title]
     body = params[:review_body]
     rating = params[:review_rating]
-    db.execute("INSERT INTO review (title, body, rating, author_id, category_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, 0, params[:id])
+    create_new_review(title, body, rating, session[:user_id], params[:id], dbPath)
     redirect("/categories/#{params[:id]}")
 end
 
 get "/categories/:id/new" do
-    db = connect_to_db(dbPath)
-    category = db.execute("SELECT * FROM category WHERE id = ?", params[:id]).first
+    category = get_category(params[:id], dbPath)
     slim(:"reviews/new", locals:{category:category})
 end
 
 get "/categories/:category_id/:review_id" do
-    db = connect_to_db(dbPath)
-    review = db.execute("SELECT * FROM review WHERE id = ?", params[:review_id]).first
+    review = get_review(params[:review_id], dbPath)
     slim(:"reviews/display", locals:{review:review})
 end
 
 post "/categories/new" do
-    db = connect_to_db(dbPath)
     name = params[:cat_name]
-    db.execute("INSERT INTO category (name) VALUES (?)", name)
+    create_new_category(name, dbPath)
     redirect("/categories")
 end
 
@@ -119,13 +115,13 @@ get "/categories/:id" do
     cat_id = params[:id]
     category = db.execute("SELECT * FROM category WHERE id = ?", cat_id).first
     reviews = db.execute("SELECT * FROM review WHERE category_id = ?", cat_id)
-    slim(:"reviews/list", locals:{category:category, reviews:reviews})
+    mod = userIsModerator(params[:id], dbPath)
+    slim(:"reviews/list", locals:{category:category, reviews:reviews, mod:mod})
 end
 
 get "/categories" do
     db = connect_to_db(dbPath)
     categories = db.execute("SELECT * FROM category")
-    p categories
     slim(:"categories/list", locals:{data:categories})
 end
 

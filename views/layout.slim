@@ -23,6 +23,7 @@ html lang="en"
                     a href="/users/new" Sign up
             - else 
                 .logout
+                    p = "Logged in as: #{getUser}" + (userIsAdmin ? " (Admin account)" : "")
                     form action="/users/logout" method="post" 
                         input type="submit" value="Log out"/
             

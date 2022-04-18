@@ -1,9 +1,10 @@
 html, body {
     margin: 0;
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    background-color: rgb(220, 220, 220);
 }
 
-button, input[type="submit"], input[type="reset"] {
+input[type="submit"], input[type="reset"] {
 	background: none;
 	color: inherit;
 	border: none;
@@ -15,12 +16,14 @@ button, input[type="submit"], input[type="reset"] {
 
 p, a {
     margin: 0;
+    color: black;
 }
 
 body > header {
     border-bottom: 2px solid gray;
     display: flex;
     height: 10vh;
+    background-color: rgb(240, 240, 240);
 }
 
 body > header > h3 {
@@ -30,11 +33,21 @@ body > header > h3 {
 .logout {
     width: 20%;
     height: 90%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.logout > p {
+    width: 100%;
+    height: 20%;
+    font-size: 0.7em;
 }
 
 .logout > form {
     width: 100%;
-    height: 100%;
+    height: 80%;
     display: flex;
     justify-content: space-evenly;
     align-items: center;
@@ -42,7 +55,7 @@ body > header > h3 {
 
 .logout > form > * {
     width: 90%;
-    height: 45%;
+    height: 60%;
     border-radius: 6px;
     box-sizing: border-box;
     display: flex;
@@ -109,7 +122,7 @@ body > header nav > a {
 }
 
 body > header nav > a:hover {
-    background-color: rgb(240, 240, 240);
+    background-color: rgb(230, 230, 230);
 }
 
 main.wrapper {
@@ -118,6 +131,7 @@ main.wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: rgb(220, 220, 220);
 }
 
 main.wrapper div {
@@ -132,4 +146,5 @@ main.wrapper div {
 
 section.popular {
     border-top: 5px solid black;
+    background-color: rgb(220, 220, 220);
 }

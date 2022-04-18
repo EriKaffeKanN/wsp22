@@ -1,6 +1,7 @@
 require 'uri'
 
 # Ruby
+# TODO: ta bort dbpath som parameter
 
 def connect_to_db(path)
     db = SQLite3::Database.new(path)
@@ -8,7 +9,33 @@ def connect_to_db(path)
     return db
 end
 
-# TODO: tillämpa funktionen
+def get_category(categoryId, dbPath)
+    db = connect_to_db(dbPath)
+    return db.execute("SELECT * FROM category WHERE id = ?", categoryId).first
+end
+
+def create_new_category(name, dbPath)
+    db = connect_to_db(dbPath)
+    db.execute("INSERT INTO category (name) VALUES (?)", name)
+    categoryId = db.execute("SELECT last_insert_rowid()").first["last_insert_rowid()"]
+    db.execute("INSERT INTO moderator_category_relation (mod_id, category_id) VALUES (?, ?)", session[:user_id], categoryId)
+end
+
+def get_review(reviewId, dbPath)
+    db = connect_to_db(dbPath)
+    return db.execute("SELECT * FROM review WHERE id = ?", reviewId).first
+end
+
+def delete_review(reviewId, dbPath)
+    db = connect_to_db(dbPath)
+    db.execute("DELETE FROM review WHERE id = ?", reviewId)
+end
+
+def create_new_review(title, body, rating, ownerId, categoryId, dbPath)
+    db = connect_to_db(dbPath)
+    db.execute("INSERT INTO review (title, body, rating, author_id, category_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, ownerId, categoryId)
+end
+
 def validate_user_registration(username, email, password, confirm, dbPath)
     db = connect_to_db(dbPath)
 
@@ -97,19 +124,27 @@ def register_user(username, email, password, dbPath)
     login_user(email, dbPath)
 end
 
-def authorize_user(ownerId, moderatorIds, dbPath)
+def authorize_user(ownerId, categoryId, dbPath)
     db = connect_to_db(dbPath)
 
-    userId = session[:user_id]
-    userIsAdmin = db.execute("SELECT admin FROM user WHERE id = ?", userId).first == 1
-    if userId == nil
+    if session[:user_id] == nil
         return false
     end
-    
-    if userId == ownerId or moderatorIds.include?(userId) or userIsAdmin
+    userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
+    p "TEST"
+    p "USER ID: #{session[:user_id]}"
+    p "OWNER ID: #{ownerId}"
+    if (session[:user_id] == ownerId) or (userIsModerator(categoryId, dbPath)) or (userIsAdmin)
         return true
     end
     return false
+end
+
+def userIsModerator(categoryId, dbPath)
+    db = connect_to_db(dbPath)
+    moderatorIds = db.execute("SELECT mod_id FROM moderator_category_relation WHERE category_id = ?", categoryId)
+    moderatorIdsArray = moderatorIds.map{|id| id["mod_id"]}
+    return moderatorIdsArray.include?(session[:user_id])
 end
 
 # Slim
@@ -121,6 +156,20 @@ helpers do
     end
 
     def getUser
-        session[:user_id]
+        if session[:user_id] == nil
+            return nil
+        end
+        db = connect_to_db("db/reviewsplus.db")
+        user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
+        return user["name"]
+    end
+
+    def userIsAdmin
+        if session[:user_id] == nil
+            return false
+        end
+        db = connect_to_db("db/reviewsplus.db")
+        user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
+        return user["admin"] == 1
     end
 end
