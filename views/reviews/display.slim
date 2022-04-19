@@ -4,5 +4,5 @@ p.review_rating = "Rating: #{review["rating"]}"
 
 section.review_body = review["body"]
 
-form action="#{review["id"]}/delete" method="post" 
+form action="/reviews/#{review["id"]}/delete" method="post" 
     input type="submit" value="Delete review"/

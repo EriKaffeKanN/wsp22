@@ -1,7 +1,7 @@
-h1 Editing #{category}
-form action="/categories/#{category_id}/update" method="post" 
+h1 Editing #{category["name"]}
+form action="/categories/#{category["id"]}/update" method="post" 
     label for="name" New name:
     input type="text" name="name"/
     input type="submit" value="Submit changes"/
-form action="/categories/#{category_id}/delete" method="post" 
+form action="/categories/#{category["id"]}/delete" method="post" 
     input type="submit" value="Delete category"/

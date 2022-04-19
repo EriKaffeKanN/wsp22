@@ -1,4 +1,3 @@
-# trolled lol
 require 'sinatra'
 require 'slim'
 require 'SQLite3'
@@ -16,7 +15,7 @@ end
 # --- Misc ---
 before do
     if request.path_info != "/users/new"
-        if (request.path_info.include?("/new") || request.path_info.include?("/edit")) && session[:user_id] == nil
+        if (request.path_info.include?("/new") || request.path_info.include?("/edit") || request.path_info.include?("/delete")) && session[:user_id] == nil
             session[:error] = "You need to log in to perform this action"
             redirect("/error")
         end
@@ -28,6 +27,8 @@ get "/error" do
 end
 
 # --- Standard routes ---
+
+# Users
 
 post "/users/logout" do
     session[:user_id] = nil
@@ -69,7 +70,9 @@ get "/users/" do
     slim(:"users/list", locals:{})
 end
 
-post "/categories/:category_id/:review_id/delete" do
+# Reviews
+
+post "/reviews/:review_id/delete" do
     # Authorize
     review = get_review(params[:review_id])
     ownerId = review["author_id"]
@@ -79,41 +82,52 @@ post "/categories/:category_id/:review_id/delete" do
         redirect("/error")
     end
     delete_review(params[:review_id])
-    redirect("/categories/#{params[:category_id]}")
+    redirect("/categories/#{review["category_id"]}")
 end
 
-post "/categories/:id" do
+post "/reviews" do
     title = params[:review_title]
     body = params[:review_body]
     rating = params[:review_rating]
-    create_new_review(title, body, rating, session[:user_id], params[:id])
-    redirect("/categories/#{params[:id]}")
+    create_new_review(title, body, rating, session[:user_id], params[:category_id])
+    redirect("/categories/#{params[:category_id]}")
 end
 
-get "/categories/:id/new" do
-    category = get_category(params[:id])
-    slim(:"reviews/new", locals:{category:category})
+get "/reviews/new" do
+    slim(:"reviews/new", locals:{category_id:session[:current_category]})
 end
 
-get "/categories/:category_id/:review_id" do
+get "/reviews/:review_id" do
     review = get_review(params[:review_id])
     slim(:"reviews/display", locals:{review:review})
 end
 
-post "/categories/new" do
+# Categories
+
+post "/categories" do
     name = params[:cat_name]
     create_new_category(name)
-    redirect("/categories")
+    redirect("/categories/")
 end
 
 get "/categories/new" do
     slim(:"categories/new")
 end
 
-get "/categories/:id/" do
+get "/categories/:id/edit" do
+    category = get_category(params[:id])
+    slim(:"categories/edit", locals:{category:category})
+end
+
+post "/categories/:id/delete" do
+    # TODO: cascade...
+end
+
+get "/categories/:id" do
     category = get_category(params[:id])
     reviews = get_reviews(params[:id])
     mod = userIsModerator(params[:id])
+    session[:current_category] = params[:id].to_i
     slim(:"reviews/list", locals:{category:category, reviews:reviews, mod:mod})
 end
 

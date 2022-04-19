@@ -1,7 +1,7 @@
 h1 Categories!
 
-a href="categories/new" New category
+a href="/categories/new" New category
 section.categories
     - for cat in data
         article.category
-            a href="/categories/#{cat["id"]}/" = cat["name"]
+            a href="/categories/#{cat["id"]}" = cat["name"]
