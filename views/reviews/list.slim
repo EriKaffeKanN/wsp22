@@ -1,5 +1,7 @@
 h1 = category["name"]
-h2 = (mod or user_is_admin) ? "You are a moderator of this category" : nil
+- if mod or user_is_admin
+    h2 You are a moderator of this category
+    a href="/categories/#{category["id"]}/edit" Edit category
 
 a href="/categories/#{category["id"]}/new" New review
 section.reviews

@@ -36,8 +36,8 @@ end
 
 post "/login" do
     # TODO: VALIDATE
-    if authenticate_user(params[:login], params[:password], dbPath)
-        login_user(params[:login], dbPath)
+    if authenticate_user(params[:login], params[:password])
+        login_user(params[:login])
         redirect("/")
     else
         redirect("/users/login")
@@ -49,8 +49,8 @@ get "/users/login" do
 end
 
 post "/users" do
-    if validate_user_registration(params[:username], params[:email], params[:password], params[:confirm], dbPath)
-        register_user(params[:username], params[:email], params[:password], dbPath)
+    if validate_user_registration(params[:username], params[:email], params[:password], params[:confirm])
+        register_user(params[:username], params[:email], params[:password])
         redirect("/")
     else
         redirect("/users/new")
@@ -71,38 +71,38 @@ end
 
 post "/categories/:category_id/:review_id/delete" do
     # Authorize
-    review = get_review(params[:review_id], dbPath)
+    review = get_review(params[:review_id])
     ownerId = review["author_id"]
     categoryId = review["category_id"]
-    if !authorize_user(ownerId, categoryId, dbPath)
+    if !authorize_user(ownerId, categoryId)
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
-    delete_review(params[:review_id], dbPath)
+    delete_review(params[:review_id])
     redirect("/categories/#{params[:category_id]}")
 end
 
-post "/categories/:id/new" do
+post "/categories/:id" do
     title = params[:review_title]
     body = params[:review_body]
     rating = params[:review_rating]
-    create_new_review(title, body, rating, session[:user_id], params[:id], dbPath)
+    create_new_review(title, body, rating, session[:user_id], params[:id])
     redirect("/categories/#{params[:id]}")
 end
 
 get "/categories/:id/new" do
-    category = get_category(params[:id], dbPath)
+    category = get_category(params[:id])
     slim(:"reviews/new", locals:{category:category})
 end
 
 get "/categories/:category_id/:review_id" do
-    review = get_review(params[:review_id], dbPath)
+    review = get_review(params[:review_id])
     slim(:"reviews/display", locals:{review:review})
 end
 
 post "/categories/new" do
     name = params[:cat_name]
-    create_new_category(name, dbPath)
+    create_new_category(name)
     redirect("/categories")
 end
 
@@ -110,14 +110,14 @@ get "/categories/new" do
     slim(:"categories/new")
 end
 
-get "/categories/:id" do
-    category = get_category(params[:id], dbPath)
+get "/categories/:id/" do
+    category = get_category(params[:id])
     reviews = get_reviews(params[:id])
-    mod = userIsModerator(params[:id], dbPath)
+    mod = userIsModerator(params[:id])
     slim(:"reviews/list", locals:{category:category, reviews:reviews, mod:mod})
 end
 
-get "/categories" do
+get "/categories/" do
     categories = get_categories
     slim(:"categories/list", locals:{data:categories})
 end
