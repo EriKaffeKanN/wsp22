@@ -1,10 +1,11 @@
 h1 = category["name"]
 - if mod or user_is_admin
     h2 You are a moderator of this category
+    a href="/tags/new" Create new tags
     a href="/categories/#{category["id"]}/edit" Edit category
 
 a href="/reviews/new" New review
 section.reviews
     - for review in reviews
         article.review
-            a href="/reviews/#{review["id"]}" = review["title"]
+            a href="/reviews/#{review["id"]}" #{review["title"]} Tags: #{get_tags(review["id"]).join(" ")}

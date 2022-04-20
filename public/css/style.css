@@ -19,6 +19,18 @@ p, a {
     color: black;
 }
 
+form {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: flex-start;
+}
+
+form input[type="submit"] {
+    box-sizing: border-box;
+    border: 2px solid black;
+}
+
 body > header {
     border-bottom: 2px solid gray;
     display: flex;

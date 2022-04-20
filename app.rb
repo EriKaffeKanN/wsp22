@@ -77,7 +77,7 @@ post "/reviews/:review_id/delete" do
     review = get_review(params[:review_id])
     ownerId = review["author_id"]
     categoryId = review["category_id"]
-    if !authorize_user(ownerId, categoryId)
+    if !authorize_user_review(ownerId, categoryId)
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -114,19 +114,29 @@ get "/categories/new" do
     slim(:"categories/new")
 end
 
+post "/categories/:id/update" do
+    update_category(params[:id], params[:name])
+    redirect("/categories/#{params[:id]}")
+end
+
 get "/categories/:id/edit" do
     category = get_category(params[:id])
     slim(:"categories/edit", locals:{category:category})
 end
 
 post "/categories/:id/delete" do
-    # TODO: cascade...
+    if !authorize_user_category(params[:id])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    delete_category(params[:id])
+    redirect("/categories/")
 end
 
 get "/categories/:id" do
     category = get_category(params[:id])
     reviews = get_reviews(params[:id])
-    mod = userIsModerator(params[:id])
+    mod = user_is_moderator(params[:id])
     session[:current_category] = params[:id].to_i
     slim(:"reviews/list", locals:{category:category, reviews:reviews, mod:mod})
 end
@@ -134,6 +144,19 @@ end
 get "/categories/" do
     categories = get_categories
     slim(:"categories/list", locals:{data:categories})
+end
+
+post "/tags" do
+    if !authorize_user_category(params[:category])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    create_new_tag(params[:name], params[:category])
+    redirect("/categories/#{params[:category]}")
+end
+
+get "/tags/new" do
+    slim(:"tags/new", locals:{category_id:session[:current_category]})
 end
 
 get "/" do

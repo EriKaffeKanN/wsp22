@@ -13,11 +13,36 @@ def get_category(categoryId)
     return db.execute("SELECT * FROM category WHERE id = ?", categoryId).first
 end
 
+def update_category(categoryId, newName)
+    db = connect_to_db(dbPath)
+    db.execute("UPDATE category SET name = ? WHERE id = ?", newName, categoryId)
+end
+
+def delete_category(categoryId)
+    db = connect_to_db(dbPath)
+    db.execute("DELETE FROM category WHERE id = ?", categoryId)
+    db.execute("DELETE FROM review WHERE category_id = ?", categoryId)
+    db.execute("DELETE FROM moderator_category_relation WHERE category_id = ?", categoryId)
+    db.execute("DELETE FROM tags WHERE category_id = ?", categoryId)
+end
+
 def create_new_category(name)
     db = connect_to_db(dbPath)
     db.execute("INSERT INTO category (name) VALUES (?)", name)
     categoryId = db.execute("SELECT last_insert_rowid()").first["last_insert_rowid()"]
     db.execute("INSERT INTO moderator_category_relation (mod_id, category_id) VALUES (?, ?)", session[:user_id], categoryId)
+end
+
+def create_new_tag(name, categoryId)
+    db = connect_to_db(dbPath)
+    db.execute("INSER INTO tag (name, category_id) VALUES (?, ?)", name, categoryId)
+end
+
+def get_tags(reviewId)
+    db = connect_to_db(dbPath)
+    tags = db.execute("SELECT * FROM review_tag_relation INNER JOIN tag ON review_tag_relation.tag_id WHERE review_id = ?", reviewId)
+    tags.map!{|t| t["name"]}
+    return tags
 end
 
 def get_review(reviewId)
@@ -123,27 +148,44 @@ def register_user(username, email, password)
     login_user(email)
 end
 
-def authorize_user(ownerId, categoryId)
+def authorize_user_category(categoryId)
     db = connect_to_db(dbPath)
 
     if session[:user_id] == nil
         return false
     end
-    user_is_admin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
-    p "TEST"
-    p "USER ID: #{session[:user_id]}"
-    p "OWNER ID: #{ownerId}"
-    if (session[:user_id] == ownerId) or (userIsModerator(categoryId)) or (user_is_admin)
+    userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
+    if (userIsModerator(categoryId)) or (userIsAdmin)
         return true
     end
     return false
 end
 
-def userIsModerator(categoryId)
+def authorize_user_review(ownerId, categoryId)
+    db = connect_to_db(dbPath)
+
+    if session[:user_id] == nil
+        return false
+    end
+    userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
+    if (session[:user_id] == ownerId) or (userIsModerator(categoryId)) or (userIsAdmin)
+        return true
+    end
+    return false
+end
+
+def user_is_moderator(categoryId)
     db = connect_to_db(dbPath)
     moderatorIds = db.execute("SELECT mod_id FROM moderator_category_relation WHERE category_id = ?", categoryId)
     moderatorIdsArray = moderatorIds.map{|id| id["mod_id"]}
     return moderatorIdsArray.include?(session[:user_id])
+end
+
+def user_is_review_owner(reviewId)
+    db = connect_to_db(dbPath)
+    review = db.execute("SELECT * FROM review WHERE id = ?", reviewId).first
+    ownerId = review["author_id"]
+    return session[:user_id] == ownerId
 end
 
 def get_reviews(categoryId)
@@ -171,6 +213,14 @@ helpers do
     def get_categories
         db = connect_to_db(dbPath)
         return db.execute("SELECT * FROM category")
+    end
+
+    def get_moderated_categories
+        if session[:user_id] = nil
+            return nil
+        end
+        db = connect_to_db(dbPath)
+        return db.execute("SELECT * FROM category WHERE id = ?", session[:user_id])
     end
 
     def user_is_admin
