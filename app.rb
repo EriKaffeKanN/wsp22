@@ -147,12 +147,12 @@ get "/categories/" do
 end
 
 post "/tags" do
-    if !authorize_user_category(params[:category])
+    if !authorize_user_category(params[:category_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
-    create_new_tag(params[:name], params[:category])
-    redirect("/categories/#{params[:category]}")
+    create_new_tag(params[:name], params[:category_id])
+    redirect("/categories/#{params[:category_id]}")
 end
 
 get "/tags/new" do

@@ -23,7 +23,7 @@ def delete_category(categoryId)
     db.execute("DELETE FROM category WHERE id = ?", categoryId)
     db.execute("DELETE FROM review WHERE category_id = ?", categoryId)
     db.execute("DELETE FROM moderator_category_relation WHERE category_id = ?", categoryId)
-    db.execute("DELETE FROM tags WHERE category_id = ?", categoryId)
+    db.execute("DELETE FROM tag WHERE category_id = ?", categoryId)
 end
 
 def create_new_category(name)
@@ -35,7 +35,7 @@ end
 
 def create_new_tag(name, categoryId)
     db = connect_to_db(dbPath)
-    db.execute("INSER INTO tag (name, category_id) VALUES (?, ?)", name, categoryId)
+    db.execute("INSERT INTO tag (name, category_id) VALUES (?, ?)", name, categoryId)
 end
 
 def get_tags(reviewId)
@@ -155,7 +155,7 @@ def authorize_user_category(categoryId)
         return false
     end
     userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
-    if (userIsModerator(categoryId)) or (userIsAdmin)
+    if (user_is_moderator(categoryId)) or (user_is_admin)
         return true
     end
     return false
@@ -216,11 +216,18 @@ helpers do
     end
 
     def get_moderated_categories
-        if session[:user_id] = nil
+        if session[:user_id] == nil
             return nil
         end
         db = connect_to_db(dbPath)
-        return db.execute("SELECT * FROM category WHERE id = ?", session[:user_id])
+        moderatedCategoryIds = db.execute("SELECT * FROM moderator_category_relation WHERE mod_id = ?", session[:user_id])
+        moderatedCategoryIds.map!{|hash| hash["category_id"]}
+        categories = get_categories
+        if user_is_admin
+            return categories
+        end
+        categories.select!{|cat|moderatedCategoryIds.include?(cat["id"])}
+        return categories
     end
 
     def user_is_admin

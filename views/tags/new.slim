@@ -1,6 +1,6 @@
 h1 Create new tag!
-form action="/tags" method="post" 
-    label for="category" Category 
+form.large action="/tags" method="post" 
+    label for="category_id" Category 
     select name="category_id"
         - for c in get_moderated_categories
             option value="#{c["id"]}" selected=(category_id == c["id"]) #{c["name"]}
