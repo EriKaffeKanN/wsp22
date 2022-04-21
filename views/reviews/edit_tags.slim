@@ -1,0 +1,9 @@
+h1 Add tag!
+form.large action="/reviews/#{review_id}/update_tags" method="post" 
+    select name="tag_id"
+        - for t in tags
+            option value="#{t["id"]}" selected=(review_id == t["id"]) #{t["name"]}
+    input type="submit" value="Add tag"/
+
+form action="/reviews/#{review_id}/delete_tags" method="post" 
+    input type="submit" value="Remove tags"/

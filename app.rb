@@ -97,9 +97,31 @@ get "/reviews/new" do
     slim(:"reviews/new", locals:{category_id:session[:current_category]})
 end
 
+post "/reviews/:review_id/update_tags" do
+    review = get_review(params[:review_id])
+    if !validate_tag(params[:tag_id], review["category_id"])
+        session[:error] = "That tag does not belong to that category"
+        redirect("/error")
+    end
+    if !authorize_user_review(review["author_id"], review["category_id"])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    add_tag(params[:tag_id], params[:review_id])
+    redirect("/reviews/#{params[:review_id]}")
+end
+
+get "/reviews/:review_id/edit_tags" do
+    review = get_review(params[:review_id])
+    tags = get_tags_in_category(review["category_id"])
+    slim(:"reviews/edit_tags", locals:{review_id:params[:review_id], tags:tags})
+end
+
 get "/reviews/:review_id" do
     review = get_review(params[:review_id])
-    slim(:"reviews/display", locals:{review:review})
+    categoryId = review["category_id"]
+    authorized = authorize_user_review(review["author_id"], categoryId)
+    slim(:"reviews/display", locals:{review:review, authorized:authorized})
 end
 
 # Categories

@@ -21,9 +21,18 @@ end
 def delete_category(categoryId)
     db = connect_to_db(dbPath)
     db.execute("DELETE FROM category WHERE id = ?", categoryId)
-    db.execute("DELETE FROM review WHERE category_id = ?", categoryId)
     db.execute("DELETE FROM moderator_category_relation WHERE category_id = ?", categoryId)
     db.execute("DELETE FROM tag WHERE category_id = ?", categoryId)
+    reviewIds = get_reviews(categoryId).map{|review| review["id"]}
+    for id in reviewIds
+        delete_review(id)
+    end
+end
+
+def delete_review(reviewId)
+    db = connect_to_db(dbPath)
+    db.execute("DELETE FROM review WHERE id = ?", reviewId)
+    db.execute("DELETE FROM review_tag_relation WHERE review_id = ?", reviewId)
 end
 
 def create_new_category(name)
@@ -38,11 +47,22 @@ def create_new_tag(name, categoryId)
     db.execute("INSERT INTO tag (name, category_id) VALUES (?, ?)", name, categoryId)
 end
 
+def delete_tag(tagId)
+    db = connect_to_db(dbPath)
+    db.execute("DELETE FROM tag WHERE id = ?", tagId)
+    db.execute("DELETE FROM tag_review_relation WHERE tag_id = ?", tagId)
+end
+
 def get_tags(reviewId)
     db = connect_to_db(dbPath)
-    tags = db.execute("SELECT * FROM review_tag_relation INNER JOIN tag ON review_tag_relation.tag_id WHERE review_id = ?", reviewId)
+    tags = db.execute("SELECT name FROM review_tag_relation LEFT JOIN tag ON review_tag_relation.tag_id WHERE id = tag_id AND review_id = ?", reviewId)
     tags.map!{|t| t["name"]}
     return tags
+end
+
+def get_tags_in_category(categoryId)
+    db = connect_to_db(dbPath)
+    return db.execute("SELECT * FROM tag WHERE category_id = ?", categoryId)
 end
 
 def get_review(reviewId)
@@ -91,6 +111,22 @@ def validate_user_registration(username, email, password, confirm)
         return false
     end
     return true
+end
+
+def validate_tag(tagId, categoryId)
+    validTags = get_tags_in_category(categoryId)
+    validTagIds = validTags.map{|tag| tag["id"]}
+    return validTagIds.include?(tagId.to_i)
+end
+
+def add_tag(tagId, reviewId)
+    db = connect_to_db(dbPath)
+    db.execute("INSERT INTO review_tag_relation (review_id, tag_id) VALUES (?, ?)", reviewId, tagId)
+end
+
+def remove_tag(tagId, reviewId)
+    db = connect_to_db(dbPath)
+    db.execute("DELETE FROM review_tag_relation WHERE tag_id = ?, review_id = ?", tagId, reviewId)
 end
 
 def string_contains_any?(str, contains)
@@ -168,7 +204,7 @@ def authorize_user_review(ownerId, categoryId)
         return false
     end
     userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
-    if (session[:user_id] == ownerId) or (userIsModerator(categoryId)) or (userIsAdmin)
+    if (session[:user_id] == ownerId) or (user_is_moderator(categoryId)) or (userIsAdmin)
         return true
     end
     return false
@@ -226,7 +262,7 @@ helpers do
         if user_is_admin
             return categories
         end
-        categories.select!{|cat|moderatedCategoryIds.include?(cat["id"])}
+        categories.select!{|cat| moderatedCategoryIds.include?(cat["id"])}
         return categories
     end
 
