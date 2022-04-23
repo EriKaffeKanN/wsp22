@@ -1,7 +1,5 @@
 require 'uri'
 
-# Ruby
-
 def connect_to_db(path)
     db = SQLite3::Database.new(path)
     db.results_as_hash = true
@@ -94,6 +92,10 @@ end
 def create_new_sub_review(title, body, rating, ownerId, reviewId)
     db = connect_to_db(dbPath)
     db.execute("INSERT INTO sub_review (title, body, rating, author_id, review_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, ownerId, reviewId)
+end
+
+def validate_review_rating(rating)
+    return rating.to_i < 1 || rating.to_i > 5
 end
 
 def validate_empty_fields(fields)

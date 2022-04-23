@@ -94,6 +94,10 @@ post "/reviews" do
     rating = params[:review_rating]
     category = params[:category_id]
     user = session[:user_id]
+    if !validate_review_rating(rating)
+        session[:error] = "Invalid rating"
+        redirect("/error")
+    end
     create_new_review(title, body, rating, user, category)
     redirect("/categories/#{params[:category_id]}")
 end
@@ -126,6 +130,10 @@ post "/reviews/:review_id/update" do
     title = params[:title]
     body = params[:body]
     rating = params[:rating]
+    if !validate_review_rating(rating)
+        session[:error] = "Invalid rating"
+        redirect("/error")
+    end
 
     review = get_review(params[:review_id])
     if !authorize_user_review(review["author_id"], review["category_id"])
@@ -164,6 +172,10 @@ post "/sub_reviews/:id/update" do
     title = params[:title]
     body = params[:body]
     rating = params[:rating]
+    if !validate_review_rating(rating)
+        session[:error] = "Invalid rating"
+        redirect("/error")
+    end
 
     subReview = get_sub_review(params[:id])
     if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"])
@@ -184,6 +196,10 @@ post "/sub_reviews" do
     rating = params[:rating]
     user = session[:user_id]
     review = params[:review]
+    if !validate_review_rating(rating)
+        session[:error] = "Invalid rating"
+        redirect("/error")
+    end
 
     create_new_sub_review(title, body, rating, user, review)
     redirect("/reviews/#{review}")
