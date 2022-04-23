@@ -7,12 +7,12 @@ require_relative 'model'
 
 enable :sessions
 
-# --- Constants ---
+include Model
+
 def dbPath
     "db/reviewsplus.db"
 end
 
-# --- Misc ---
 before do
     if request.path_info != "/users/new"
         if (request.path_info.include?("/new") || request.path_info.include?("/edit") || request.path_info.include?("/delete")) && session[:user_id] == nil
@@ -29,10 +29,6 @@ end
 get "/error" do
     "Error: #{session[:error]}" + '<a href="/">Return to homepage</a>'
 end
-
-# --- Standard routes ---
-
-# Users
 
 post "/users/logout" do
     session[:user_id] = nil
@@ -73,8 +69,6 @@ get "/users/" do
     slim(:"users/list", locals:{})
 end
 
-# Reviews
-
 post "/reviews/:review_id/delete" do
     # Authorize
     review = get_review(params[:review_id])
@@ -104,6 +98,19 @@ end
 
 get "/reviews/new" do
     slim(:"reviews/new", locals:{category_id:session[:current_category]})
+end
+
+post "/reviews/:review_id/delete_tags" do
+    review = get_review(params[:review_id])
+    if !authorize_user_review(review["id"], review["category_id"])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    tags = get_tag_ids(params[:review_id])
+    for id in tags
+        remove_tag(id, params[:review_id])
+    end
+    redirect("/reviews/#{params[:review_id]}")
 end
 
 post "/reviews/:review_id/update_tags" do
@@ -156,8 +163,6 @@ get "/reviews/:review_id" do
     session[:current_review] = params[:review_id].to_i
     slim(:"reviews/display", locals:{review:review, authorized:authorized, sub_reviews:subReviews})
 end
-
-# Sub-reviews
 
 post "/sub_reviews/:id/delete" do
     subReview = get_sub_review(params[:id])
@@ -215,8 +220,6 @@ get "/sub_reviews/:id" do
     authorized = authorize_user_sub_review(subReview["author_id"], reviewId)
     slim(:"sub_reviews/display", locals:{sub_review:subReview, authorized:authorized})
 end
-
-# Categories
 
 post "/categories" do
     name = params[:cat_name]
