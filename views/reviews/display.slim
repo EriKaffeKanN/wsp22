@@ -2,10 +2,17 @@ h2 = review["title"]
 
 - if authorized 
     a href="/reviews/#{review["id"]}/edit_tags" Edit tags
+    a href="/reviews/#{review["id"]}/edit" Edit review
 
 p.review_rating = "Rating: #{review["rating"]}"
 
 section.review_body = review["body"]
+
+h3 Sub-reviews: 
+- for r in sub_reviews 
+    a href="/sub_reviews/#{r["id"]}" #{r["title"]}
+- if get_user != nil 
+    a href="/sub_reviews/new" = -"Create new sub-review"
 
 form action="/reviews/#{review["id"]}/delete" method="post" 
     input type="submit" value="Delete review"/

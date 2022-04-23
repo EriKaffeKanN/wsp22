@@ -1,0 +1,10 @@
+h1 Edit review!
+form.large action="/reviews/#{review_id}/update" method="post" 
+    label for="title" Title 
+    input type="text" name="title"/ 
+    label for="title" Body 
+    input type="text" name="body"/
+    -# TODO: fixed number rating
+    label for="rating" Rating 
+    input type="number" name="rating"/ 
+    input type="submit" value="Create"/

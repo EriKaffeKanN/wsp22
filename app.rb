@@ -20,6 +20,10 @@ before do
             redirect("/error")
         end
     end
+    if !validate_empty_fields(params)
+        session[:error] = "Empty fields are not allowed"
+        redirect("/error")
+    end
 end
 
 get "/error" do
@@ -36,7 +40,6 @@ post "/users/logout" do
 end
 
 post "/login" do
-    # TODO: VALIDATE
     if authenticate_user(params[:login], params[:password])
         login_user(params[:login])
         redirect("/")
@@ -89,7 +92,9 @@ post "/reviews" do
     title = params[:review_title]
     body = params[:review_body]
     rating = params[:review_rating]
-    create_new_review(title, body, rating, session[:user_id], params[:category_id])
+    category = params[:category_id]
+    user = session[:user_id]
+    create_new_review(title, body, rating, user, category)
     redirect("/categories/#{params[:category_id]}")
 end
 
@@ -117,11 +122,53 @@ get "/reviews/:review_id/edit_tags" do
     slim(:"reviews/edit_tags", locals:{review_id:params[:review_id], tags:tags})
 end
 
+post "/reviews/:review_id/update" do
+    title = params[:title]
+    body = params[:body]
+    rating = params[:rating]
+
+    review = get_review(params[:review_id])
+    if !authorize_user_review(review["author_id"], review["category_id"])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    update_review(title, body, rating, params[:review_id])
+    redirect("/reviews/#{params[:review_id]}")
+end
+
+get "/reviews/:review_id/edit" do
+    slim(:"reviews/edit", locals:{review_id:params[:review_id]})
+end
+
 get "/reviews/:review_id" do
     review = get_review(params[:review_id])
     categoryId = review["category_id"]
     authorized = authorize_user_review(review["author_id"], categoryId)
-    slim(:"reviews/display", locals:{review:review, authorized:authorized})
+    subReviews = get_sub_reviews(params[:review_id])
+    session[:current_review] = params[:review_id].to_i
+    slim(:"reviews/display", locals:{review:review, authorized:authorized, sub_reviews:subReviews})
+end
+
+# Sub-reviews
+
+post "/sub_reviews" do
+    title = params[:title]
+    body = params[:body]
+    rating = params[:rating]
+    user = session[:user_id]
+    review = params[:review]
+
+    create_new_sub_review(title, body, rating, user, review)
+    redirect("/reviews/#{review}")
+end
+
+get "/sub_reviews/new" do
+    slim(:"sub_reviews/new", locals:{review_id:session[:current_review]})
+end
+
+get "/sub_reviews/:id" do
+    subReview = get_sub_review(params[:id])
+    slim(:"sub_reviews/display", locals:{sub_review:subReview})
 end
 
 # Categories
@@ -137,6 +184,10 @@ get "/categories/new" do
 end
 
 post "/categories/:id/update" do
+    if !authorize_user_category(params[:id])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
     update_category(params[:id], params[:name])
     redirect("/categories/#{params[:id]}")
 end

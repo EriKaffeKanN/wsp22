@@ -29,6 +29,11 @@ def delete_category(categoryId)
     end
 end
 
+def update_review(title, body, rating, reviewId)
+    db = connect_to_db(dbPath)
+    db.execute("UPDATE review SET title = ?, body = ?, rating = ? WHERE id = ?", title, body, rating, reviewId)
+end
+
 def delete_review(reviewId)
     db = connect_to_db(dbPath)
     db.execute("DELETE FROM review WHERE id = ?", reviewId)
@@ -65,19 +70,34 @@ def get_tags_in_category(categoryId)
     return db.execute("SELECT * FROM tag WHERE category_id = ?", categoryId)
 end
 
+def get_sub_review(subReviewId)
+    db = connect_to_db(dbPath)
+    return db.execute("SELECT * FROM sub_review WHERE id = ?", subReviewId).first
+end
+
 def get_review(reviewId)
     db = connect_to_db(dbPath)
     return db.execute("SELECT * FROM review WHERE id = ?", reviewId).first
 end
 
-def delete_review(reviewId)
-    db = connect_to_db(dbPath)
-    db.execute("DELETE FROM review WHERE id = ?", reviewId)
-end
-
 def create_new_review(title, body, rating, ownerId, categoryId)
     db = connect_to_db(dbPath)
     db.execute("INSERT INTO review (title, body, rating, author_id, category_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, ownerId, categoryId)
+end
+
+def create_new_sub_review(title, body, rating, ownerId, reviewId)
+    db = connect_to_db(dbPath)
+    db.execute("INSERT INTO sub_review (title, body, rating, author_id, review_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, ownerId, reviewId)
+end
+
+def validate_empty_fields(fields)
+    for f in fields
+        value = f[1]
+        if value == "" || value == nil
+            return false
+        end
+    end
+    return true
 end
 
 def validate_user_registration(username, email, password, confirm)
@@ -229,6 +249,11 @@ def get_reviews(categoryId)
     return db.execute("SELECT * FROM review WHERE category_id = ?", categoryId)
 end
 
+def get_sub_reviews(reviewId)
+    db = connect_to_db(dbPath)
+    return db.execute("SELECT * FROM sub_review WHERE review_id = ?", reviewId)
+end
+
 # Slim
 
 helpers do
@@ -244,6 +269,11 @@ helpers do
         db = connect_to_db(dbPath)
         user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
         return user["name"]
+    end
+
+    def get_all_reviews
+        db = connect_to_db(dbPath)
+        return db.execute("SELECT * FROM review")
     end
 
     def get_categories

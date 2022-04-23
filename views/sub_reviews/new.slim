@@ -1,0 +1,14 @@
+h1 = "Create new sub-review!"
+form.large action="/sub_reviews" method="post" 
+    label for="review" Review 
+    select name="review"
+        - for r in get_all_reviews
+            option value="#{r["id"]}" selected=(review_id == r["id"]) #{r["title"]}
+    label for="review_title" Title 
+    input type="text" name="title"/ 
+    label for="review_title" Body 
+    input type="text" name="body"/
+    -# TODO: fixed number rating
+    label for="review_rating" Rating 
+    input type="number" name="rating"/ 
+    input type="submit" value="Create"/
