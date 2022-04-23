@@ -1,5 +1,5 @@
-h1 Edit review!
-form.large action="/reviews/#{review_id}/update" method="post" 
+h1 = -"Edit sub-review!"
+form.large action="/sub_reviews/#{sub_review_id}/update" method="post" 
     label for="title" Title 
     input type="text" name="title"/ 
     label for="title" Body 
@@ -9,5 +9,5 @@ form.large action="/reviews/#{review_id}/update" method="post"
     input type="number" name="rating"/ 
     input type="submit" value="Create"/
 
-form action="/reviews/#{review_id}/delete" method="post" 
-    input type="submit" value="Delete review"/
+form action="/sub_reviews/#{sub_review_id}/delete" method="post" 
+    input type="submit" value="Delete sub-review"/

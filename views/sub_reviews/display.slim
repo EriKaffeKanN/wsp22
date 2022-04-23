@@ -1,5 +1,8 @@
 h2 = sub_review["title"]
 
+- if authorized 
+    a href="/sub_reviews/#{sub_review["id"]}/edit" = "Edit sub-review"
+
 p.review_rating = "Rating: #{sub_review["rating"]}"
 
 section.review_body = sub_review["body"]

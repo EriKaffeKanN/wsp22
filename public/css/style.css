@@ -49,6 +49,20 @@ body > header > h3 {
     width: 20%;
 }
 
+.subReviewWindow {
+    display:flex;
+    flex-direction: column;
+}
+
+article.review {
+    width: 30vw;
+    height: 5vh;
+    display:flex;
+    justify-content: space-between;
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+
 .logout {
     width: 20%;
     height: 90%;

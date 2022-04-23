@@ -29,6 +29,11 @@ def delete_category(categoryId)
     end
 end
 
+def update_sub_review(title, body, rating, subReviewId)
+    db = connect_to_db(dbPath)
+    db.execute("UPDATE sub_review SET title = ?, body = ?, rating = ? WHERE id = ?", title, body, rating, subReviewId)
+end
+
 def update_review(title, body, rating, reviewId)
     db = connect_to_db(dbPath)
     db.execute("UPDATE review SET title = ?, body = ?, rating = ? WHERE id = ?", title, body, rating, reviewId)
@@ -38,6 +43,7 @@ def delete_review(reviewId)
     db = connect_to_db(dbPath)
     db.execute("DELETE FROM review WHERE id = ?", reviewId)
     db.execute("DELETE FROM review_tag_relation WHERE review_id = ?", reviewId)
+    db.execute("DELETE FROM sub_review WHERE review_id = ?", reviewId)
 end
 
 def create_new_category(name)
@@ -223,10 +229,23 @@ def authorize_user_review(ownerId, categoryId)
     if session[:user_id] == nil
         return false
     end
-    userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
-    if (session[:user_id] == ownerId) or (user_is_moderator(categoryId)) or (userIsAdmin)
+    if (session[:user_id] == ownerId) or (user_is_moderator(categoryId)) or (user_is_admin)
         return true
     end
+    return false
+end
+
+def authorize_user_sub_review(ownerId, reviewId)
+    db = connect_to_db(dbPath)
+
+    if session[:user_id] == nil
+        return false
+    end
+    categoryId = db.execute("SELECT * FROM review WHERE id = ?", reviewId).first["category_id"]
+    if (session[:user_id] == ownerId) or (user_is_moderator(categoryId)) or (user_is_admin)
+        return true
+    end
+
     return false
 end
 

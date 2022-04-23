@@ -151,6 +151,33 @@ end
 
 # Sub-reviews
 
+post "/sub_reviews/:id/delete" do
+    subReview = get_sub_review(params[:id])
+    if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    redirect("/reviews/#{subReview["review_id"]}")
+end
+
+post "/sub_reviews/:id/update" do
+    title = params[:title]
+    body = params[:body]
+    rating = params[:rating]
+
+    subReview = get_sub_review(params[:id])
+    if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"])
+        session[:error] = "You do not have permission to perform this action"
+        redirect("/error")
+    end
+    update_sub_review(title, body, rating, params[:id])
+    redirect("/reviews/#{subReview["review_id"]}")
+end
+
+get "/sub_reviews/:id/edit" do
+    slim(:"sub_reviews/edit", locals:{sub_review_id:params[:id]})
+end
+
 post "/sub_reviews" do
     title = params[:title]
     body = params[:body]
@@ -168,7 +195,9 @@ end
 
 get "/sub_reviews/:id" do
     subReview = get_sub_review(params[:id])
-    slim(:"sub_reviews/display", locals:{sub_review:subReview})
+    reviewId = subReview["review_id"]
+    authorized = authorize_user_sub_review(subReview["author_id"], reviewId)
+    slim(:"sub_reviews/display", locals:{sub_review:subReview, authorized:authorized})
 end
 
 # Categories
