@@ -45,17 +45,32 @@ post "/users/logout" do
     redirect("/")
 end
 
-# Authenticates login attempts and logs in the user if successfull
+# Authenticates login attempts and logs in the user if successfull. Locks the user out if more than 5 unsuccessful attempts are made in 5 minutes.
 #
 # @param [String] login The username or email of a user
 # @param [String] password The attempted password
 #
 # @see Model#authenticate_user
 post "/login" do
+    if session[:login_attempts] == nil
+        session[:login_attempts] = 0
+    end
+    if session[:last_login_attempt] == nil
+        session[:last_login_attempt] = Time.now.to_i
+    end
+    session[:login_attempts] = 0 if Time.new.to_i - session[:last_login_attempt] > 300 # Reset counter if 5 minutes have passed
+    session[:last_login_attempt] = Time.new.to_i
+
+    if session[:login_attempts] > 5
+        session[:error] = "Too many login attempts. Try again later."
+        redirect("/error")
+    end
+
     if authenticate_user(params[:login], params[:password])
         login_user(params[:login])
         redirect("/")
     else
+        session[:login_attempts] += 1
         redirect("/users/login")
     end
 end
