@@ -1,6 +1,12 @@
 require 'uri'
 
+# All methods that interact with the database
+#
 module Model
+    
+    # The path to the database
+    #
+    DB_PATH = "db/reviewsplus.db"
 
     # Connects to a database
     #
@@ -21,7 +27,7 @@ module Model
     #   * :id [Integer] The id of the category
     #   * :id [String] The name of the category
     def get_category(categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM category WHERE id = ?", categoryId).first
     end
 
@@ -30,7 +36,7 @@ module Model
     # @param [Integer] categoryId The id of the category
     # @param [String] newName The new name of the category
     def update_category(categoryId, newName)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("UPDATE category SET name = ? WHERE id = ?", newName, categoryId)
     end
 
@@ -38,7 +44,7 @@ module Model
     #
     # @param [Integer] categoryId The id of the category
     def delete_category(categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("DELETE FROM category WHERE id = ?", categoryId)
         db.execute("DELETE FROM moderator_category_relation WHERE category_id = ?", categoryId)
         db.execute("DELETE FROM tag WHERE category_id = ?", categoryId)
@@ -55,7 +61,7 @@ module Model
     # @param [Integer] rating The new rating of the sub-review
     # @param [Integer] subReviewId The id of the sub-review
     def update_sub_review(title, body, rating, subReviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("UPDATE sub_review SET title = ?, body = ?, rating = ? WHERE id = ?", title, body, rating, subReviewId)
     end
 
@@ -66,7 +72,7 @@ module Model
     # @param [Integer] rating The new rating of the review
     # @param [Integer] reviewId The id of the review
     def update_review(title, body, rating, reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("UPDATE review SET title = ?, body = ?, rating = ? WHERE id = ?", title, body, rating, reviewId)
     end
 
@@ -74,7 +80,7 @@ module Model
     #
     # @param [Integer] reviewId The id of the review
     def delete_review(reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("DELETE FROM review WHERE id = ?", reviewId)
         db.execute("DELETE FROM review_tag_relation WHERE review_id = ?", reviewId)
         db.execute("DELETE FROM sub_review WHERE review_id = ?", reviewId)
@@ -84,7 +90,7 @@ module Model
     #
     # @param [String] name The name of the category
     def create_new_category(name)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("INSERT INTO category (name) VALUES (?)", name)
         categoryId = db.execute("SELECT last_insert_rowid()").first["last_insert_rowid()"]
         db.execute("INSERT INTO moderator_category_relation (mod_id, category_id) VALUES (?, ?)", session[:user_id], categoryId)
@@ -95,7 +101,7 @@ module Model
     # @param [String] name The name of the tag
     # @param [Integer] categoryId The id of the category that the tag should belong to
     def create_new_tag(name, categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("INSERT INTO tag (name, category_id) VALUES (?, ?)", name, categoryId)
     end
 
@@ -103,7 +109,7 @@ module Model
     #
     # @param [Integer] tagId The id of the tag that should be deleted
     def delete_tag(tagId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("DELETE FROM tag WHERE id = ?", tagId)
         db.execute("DELETE FROM tag_review_relation WHERE tag_id = ?", tagId)
     end
@@ -114,7 +120,7 @@ module Model
     #
     # @return [Array<String>] The names of the tags
     def get_tags(reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         tags = db.execute("SELECT name FROM review_tag_relation LEFT JOIN tag ON review_tag_relation.tag_id WHERE id = tag_id AND review_id = ?", reviewId)
         tags.map!{|t| t["name"]}
         return tags
@@ -126,7 +132,7 @@ module Model
     #
     # @return [Array<Integer>] The ids of the tags
     def get_tag_ids(reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         tags = db.execute("SELECT id FROM review_tag_relation LEFT JOIN tag ON review_tag_relation.tag_id WHERE id = tag_id AND review_id = ?", reviewId)
         tags.map!{|t| t["id"]}
         return tags
@@ -138,7 +144,7 @@ module Model
     #
     # @return [Array<Hash>] The tags
     def get_tags_in_category(categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM tag WHERE category_id = ?", categoryId)
     end
 
@@ -154,7 +160,7 @@ module Model
     #   * :review_id [Integer] The review id of the sub-review
     #   * :author_id [Integer] The id of the sub-review's owner
     def get_sub_review(subReviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM sub_review WHERE id = ?", subReviewId).first
     end
 
@@ -170,7 +176,7 @@ module Model
     #   * :category_id [Integer] The category id of the review
     #   * :author_id [Integer] The id of the review's owner
     def get_review(reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM review WHERE id = ?", reviewId).first
     end
 
@@ -182,7 +188,7 @@ module Model
     # @param [Integer] ownerId The id of the review's owner
     # @param [Integer] categoryId The category id of the review
     def create_new_review(title, body, rating, ownerId, categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("INSERT INTO review (title, body, rating, author_id, category_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, ownerId, categoryId)
     end
 
@@ -194,7 +200,7 @@ module Model
     # @param [Integer] ownerId The id of the sub-review's owner
     # @param [Integer] reviewId The review id of the sub-review
     def create_new_sub_review(title, body, rating, ownerId, reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("INSERT INTO sub_review (title, body, rating, author_id, review_id) VALUES (?, ?, ?, ?, ?)", title, body, rating, ownerId, reviewId)
     end
 
@@ -204,7 +210,7 @@ module Model
     #
     # @return [Boolean] Whether the rating is valid or not
     def validate_review_rating(rating)
-        return rating.to_i < 1 || rating.to_i > 5
+        return rating.to_i >= 1 && rating.to_i <= 5
     end
 
     # Checks if the any of the fields of a form are empty
@@ -233,11 +239,11 @@ module Model
     #
     # @return [Boolean] Whether the registration is valid or not
     def validate_user_registration(username, email, password, confirm)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
 
         nameAldreadyExists = !db.execute("SELECT * FROM user WHERE name = ?", username).empty?
         if nameAldreadyExists
-            session[:loginError] = "The name already exists"
+            session[:registrationError] = "The name already exists"
             return false
         end
 
@@ -245,21 +251,21 @@ module Model
         emailCorrectlyFormatted = URI::MailTo::EMAIL_REGEXP.match?(email)
         emailAlreadyExists = !db.execute("SELECT * FROM user WHERE email = ?", email).empty?
         if !emailCorrectlyFormatted
-            session[:loginError] = "Use a real email adress"
+            session[:registrationError] = "Use a real email adress"
             return false
         elsif emailAlreadyExists
-            session[:loginError] = "That email already exists"
+            session[:registrationError] = "That email already exists"
             return false
         end
         # Password
         if password != confirm
-            session[:loginError] = "Passwords did not match each other"
+            session[:registrationError] = "Passwords did not match each other"
             return false
         elsif password.length < 8
-            session[:loginError] = "Password needs to be 8 characters or more"
+            session[:registrationError] = "Password needs to be 8 characters or more"
             return false
         elsif !string_contains_any?(password, "1234567890")
-            session[:loginError] = "Password needs to contain at least 1 numerical value"
+            session[:registrationError] = "Password needs to contain at least 1 numerical value"
             return false
         end
         return true
@@ -282,7 +288,7 @@ module Model
     # @param [Integer] tagId The id of the tag
     # @param [Integer] reviewId The id of the review
     def add_tag(tagId, reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("INSERT INTO review_tag_relation (review_id, tag_id) VALUES (?, ?)", reviewId, tagId)
     end
 
@@ -291,7 +297,7 @@ module Model
     # @param [Integer] tagId The id of the tag
     # @param [Integer] reviewId The id of the review
     def remove_tag(tagId, reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         p db.execute("SELECT * FROM review_tag_relation WHERE tag_id = ? AND review_id = ?", tagId, reviewId)
         db.execute("DELETE FROM review_tag_relation WHERE tag_id = ? AND review_id = ?", tagId, reviewId)
     end
@@ -313,7 +319,7 @@ module Model
     #
     # @return [Boolean] Whether or not the login was successful
     def authenticate_user(login, password) # Login is email or username
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
 
         # Check if login is email or username
         userAry = []
@@ -338,7 +344,7 @@ module Model
         pwDigest = user["pwdigest"]
         pwDigest = BCrypt::Password.new(pwDigest)
         unless pwDigest == password
-            session[:loginError] = "Incorrect password"
+            session[:registrationError] = "Incorrect password"
             return false
         end
         return true
@@ -348,7 +354,7 @@ module Model
     #
     # @param [String] login The username or email of the user
     def login_user(login)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         # Check if login is email or username
         user = nil
         if URI::MailTo::EMAIL_REGEXP.match?(login)
@@ -365,7 +371,7 @@ module Model
     # @param [String] email
     # @param [String] password
     def register_user(username, email, password)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         pwDigest = BCrypt::Password.create(password)
         db.execute("INSERT INTO user (name, email, pwdigest) VALUES (?, ?, ?)", username, email, pwDigest)
         login_user(email)
@@ -377,7 +383,7 @@ module Model
     #
     # @return [Boolean] Whether or not the user is authorized
     def authorize_user_category(categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
 
         if session[:user_id] == nil
             return false
@@ -396,7 +402,7 @@ module Model
     #
     # @return [Boolean] Whether or not the user is authorized
     def authorize_user_review(ownerId, categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
 
         if session[:user_id] == nil
             return false
@@ -414,7 +420,7 @@ module Model
     #
     # @return [Boolean] Whether or not the user is authorized
     def authorize_user_sub_review(ownerId, reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
 
         if session[:user_id] == nil
             return false
@@ -433,7 +439,7 @@ module Model
     #
     # @return [Boolean]
     def user_is_moderator(categoryId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         moderatorIds = db.execute("SELECT mod_id FROM moderator_category_relation WHERE category_id = ?", categoryId)
         moderatorIdsArray = moderatorIds.map{|id| id["mod_id"]}
         return moderatorIdsArray.include?(session[:user_id])
@@ -445,7 +451,7 @@ module Model
     #
     # @return [Boolean]
     def user_is_review_owner(reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         review = db.execute("SELECT * FROM review WHERE id = ?", reviewId).first
         ownerId = review["author_id"]
         return session[:user_id] == ownerId
@@ -467,42 +473,57 @@ module Model
     #
     # @return [Array<Hash>]
     def get_sub_reviews(reviewId)
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM sub_review WHERE review_id = ?", reviewId)
     end
 end
-# Slim
 
-helpers do
+# All methods that can be accessed in slim
+module SlimHelpers
+    # Gets all users from the database
+    #
+    # @return [Array<Hash>] The users
     def users
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         db.execute("SELECT * FROM users")
     end
 
+    # Gets the current logged in user's name
+    #
+    # @return [String] The name of the user
     def get_user
         if session[:user_id] == nil
             return nil
         end
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
         return user["name"]
     end
 
+    # Gets all reviews from the database
+    #
+    # @return [Array<Hash>] The reviews
     def get_all_reviews
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM review")
     end
 
+    # Gets all categories from the database
+    #
+    # @return [Array<Hash>] The categories
     def get_categories
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         return db.execute("SELECT * FROM category")
     end
 
+    # Gets all categories that the current logged in user is a moderator of
+    #
+    # @return [Array<Hash>] The categories
     def get_moderated_categories
         if session[:user_id] == nil
             return nil
         end
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         moderatedCategoryIds = db.execute("SELECT * FROM moderator_category_relation WHERE mod_id = ?", session[:user_id])
         moderatedCategoryIds.map!{|hash| hash["category_id"]}
         categories = get_categories
@@ -513,11 +534,14 @@ helpers do
         return categories
     end
 
+    # Checks whether or not the current logged user is an admin
+    #
+    # @ return [Boolean] Whether or not the current logged user is an admin
     def user_is_admin
         if session[:user_id] == nil
             return false
         end
-        db = connect_to_db(dbPath)
+        db = connect_to_db(DB_PATH)
         user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
         return user["admin"] == 1
     end
