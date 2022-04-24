@@ -253,8 +253,11 @@ end
 # Displays the form for editing a review
 #
 # @param [Integer] :review_id The ID of the review
+#
+# @see Model#get_review
 get "/reviews/:review_id/edit" do
-    slim(:"reviews/edit", locals:{review_id:params[:review_id]})
+    review = get_review(params[:review_id])
+    slim(:"reviews/edit", locals:{review:review})
 end
 
 # Displays a review, also displays a message if the user is the owner of the review, or a moderator of the category in which the review is posted, or an admin
@@ -320,8 +323,11 @@ end
 # Displays the form for editing a sub-review
 #
 # @param [Integer] :id The ID of the sub-review
+#
+# @see Model#get_sub_review
 get "/sub_reviews/:id/edit" do
-    slim(:"sub_reviews/edit", locals:{sub_review_id:params[:id]})
+    subReview = get_sub_review(params[:id])
+    slim(:"sub_reviews/edit", locals:{sub_review:subReview})
 end
 
 # Creates a sub-review if the rating is between 1 and 5
