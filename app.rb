@@ -66,11 +66,13 @@ post "/login" do
         redirect("/error")
     end
 
-    if authenticate_user(params[:login], params[:password])
-        login_user(params[:login])
+    loginError = authenticate_user(params[:login], params[:password])
+    if loginError == nil
+        session[:user_id] = login_user(params[:login])
         redirect("/")
     else
         session[:login_attempts] += 1
+        session[:login_error] = loginError
         redirect("/users/login")
     end
 end
@@ -96,10 +98,12 @@ end
 #
 # @see Model#validate_user_registration
 post "/users" do
-    if validate_user_registration(params[:username], params[:email], params[:password], params[:confirm])
-        register_user(params[:username], params[:email], params[:password])
+    registrationError = validate_user_registration(params[:username], params[:email], params[:password], params[:confirm])
+    if registrationError == nil
+        session[:user_id] = register_user(params[:username], params[:email], params[:password])
         redirect("/")
     else
+        session[:registrationError] = registrationError
         redirect("/users/new")
     end
 end
@@ -128,7 +132,7 @@ post "/reviews/:review_id/delete" do
     review = get_review(params[:review_id])
     ownerId = review["author_id"]
     categoryId = review["category_id"]
-    if !authorize_user_review(ownerId, categoryId)
+    if !authorize_user_review(ownerId, categoryId, session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -175,7 +179,7 @@ end
 # @see Model#remove_tag
 post "/reviews/:review_id/delete_tags" do
     review = get_review(params[:review_id])
-    if !authorize_user_review(review["id"], review["category_id"])
+    if !authorize_user_review(review["author_id"], review["category_id"], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -201,7 +205,7 @@ post "/reviews/:review_id/update_tags" do
         session[:error] = "That tag does not belong to that category"
         redirect("/error")
     end
-    if !authorize_user_review(review["author_id"], review["category_id"])
+    if !authorize_user_review(review["author_id"], review["category_id"], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -242,7 +246,7 @@ post "/reviews/:review_id/update" do
     end
 
     review = get_review(params[:review_id])
-    if !authorize_user_review(review["author_id"], review["category_id"])
+    if !authorize_user_review(review["author_id"], review["category_id"], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -270,10 +274,10 @@ end
 get "/reviews/:review_id" do
     review = get_review(params[:review_id])
     categoryId = review["category_id"]
-    authorized = authorize_user_review(review["author_id"], categoryId)
+    authorized = authorize_user_review(review["author_id"], categoryId, session[:user_id])
     subReviews = get_sub_reviews(params[:review_id])
     session[:current_review] = params[:review_id].to_i
-    slim(:"reviews/display", locals:{review:review, authorized:authorized, sub_reviews:subReviews})
+    slim(:"reviews/show", locals:{review:review, authorized:authorized, sub_reviews:subReviews, user_id:session[:user_id]})
 end
 
 # Deletes a sub-review if the current user is the owner of the sub-review, or a moderator of the category in which the mother-review is posted, or an admin
@@ -284,7 +288,7 @@ end
 # @see Model#authorize_user_sub_review
 post "/sub_reviews/:id/delete" do
     subReview = get_sub_review(params[:id])
-    if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"])
+    if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -312,7 +316,7 @@ post "/sub_reviews/:id/update" do
     end
 
     subReview = get_sub_review(params[:id])
-    if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"])
+    if !authorize_user_sub_review(subReview["author_id"], subReview["review_id"], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -369,8 +373,8 @@ end
 get "/sub_reviews/:id" do
     subReview = get_sub_review(params[:id])
     reviewId = subReview["review_id"]
-    authorized = authorize_user_sub_review(subReview["author_id"], reviewId)
-    slim(:"sub_reviews/display", locals:{sub_review:subReview, authorized:authorized})
+    authorized = authorize_user_sub_review(subReview["author_id"], reviewId, session[:user_id])
+    slim(:"sub_reviews/show", locals:{sub_review:subReview, authorized:authorized})
 end
 
 # Creates a new category, requires no permission aside from being logged in
@@ -380,7 +384,7 @@ end
 # @see Model#create_new_category
 post "/categories" do
     name = params[:cat_name]
-    create_new_category(name)
+    create_new_category(name, session[:user_id])
     redirect("/categories/")
 end
 
@@ -398,7 +402,7 @@ end
 # @see Model#authorize_user_category
 # @see Model#update_category
 post "/categories/:id/update" do
-    if !authorize_user_category(params[:id])
+    if !authorize_user_category(params[:id], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -423,7 +427,7 @@ end
 # @see Model#authorize_user_category
 # @see Model#delete_category
 post "/categories/:id/delete" do
-    if !authorize_user_category(params[:id])
+    if !authorize_user_category(params[:id], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -440,9 +444,9 @@ end
 get "/categories/:id" do
     category = get_category(params[:id])
     reviews = get_reviews(params[:id])
-    mod = user_is_moderator(params[:id])
+    mod = user_is_moderator(params[:id], session[:user_id])
     session[:current_category] = params[:id].to_i
-    slim(:"reviews/list", locals:{category:category, reviews:reviews, mod:mod})
+    slim(:"categories/show", locals:{category:category, reviews:reviews, mod:mod, user_id:session[:user_id]})
 end
 
 # Displays all categories
@@ -450,7 +454,7 @@ end
 # @see SlimHelpers#get_categories
 get "/categories/" do
     categories = get_categories
-    slim(:"categories/list", locals:{data:categories})
+    slim(:"categories/index", locals:{data:categories})
 end
 
 # Creates a tag if the current user is a moderator of the category in which the tag is created, or an admin
@@ -461,7 +465,7 @@ end
 # @see Model#authorize_user_category
 # @see Model#create_new_tag
 post "/tags" do
-    if !authorize_user_category(params[:category_id])
+    if !authorize_user_category(params[:category_id], session[:user_id])
         session[:error] = "You do not have permission to perform this action"
         redirect("/error")
     end
@@ -472,7 +476,7 @@ end
 # Displays the form for creating a new tag
 #
 get "/tags/new" do
-    slim(:"tags/new", locals:{category_id:session[:current_category]})
+    slim(:"tags/new", locals:{category_id:session[:current_category], user_id:session[:user_id]})
 end
 
 # Displays the landing page

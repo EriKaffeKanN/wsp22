@@ -12,5 +12,5 @@ h3 Sub-reviews:
 .subReviewWindow
     - for r in sub_reviews 
         a href="/sub_reviews/#{r["id"]}" #{r["title"]}
-    - if get_user != nil 
+    - if get_user(user_id) != nil 
         a href="/sub_reviews/new" = -"Create new sub-review"

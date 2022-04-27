@@ -13,13 +13,13 @@ html lang="en"
                 a href="/" Home
                 a href="/categories/" Browse categories 
                     
-            - if get_user == nil
+            - if get_user(session[:user_id]) == nil
                 .loginHeader 
                     a href="/users/login" Log in 
                     a href="/users/new" Sign up
             - else 
                 .logout
-                    p = "Logged in as: #{get_user}" + (user_is_admin ? " (Admin account)" : "")
+                    p = "Logged in as: #{get_user(session[:user_id])}" + (user_is_admin(session[:user_id]) ? " (Admin account)" : "")
                     form action="/users/logout" method="post" 
                         input type="submit" value="Log out"/
             

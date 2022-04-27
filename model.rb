@@ -89,11 +89,12 @@ module Model
     # Creates a new category
     #
     # @param [String] name The name of the category
-    def create_new_category(name)
+    # @param [Integer] userId The ID of the current user
+    def create_new_category(name, userId)
         db = connect_to_db(DB_PATH)
         db.execute("INSERT INTO category (name) VALUES (?)", name)
         categoryId = db.execute("SELECT last_insert_rowid()").first["last_insert_rowid()"]
-        db.execute("INSERT INTO moderator_category_relation (mod_id, category_id) VALUES (?, ?)", session[:user_id], categoryId)
+        db.execute("INSERT INTO moderator_category_relation (mod_id, category_id) VALUES (?, ?)", userId, categoryId)
     end
 
     # Creates a new tag
@@ -237,38 +238,32 @@ module Model
     # @param [String] password
     # @param [String] confirm Confirm password
     #
-    # @return [Boolean] Whether the registration is valid or not
+    # @return [String] Error message if one arises
     def validate_user_registration(username, email, password, confirm)
         db = connect_to_db(DB_PATH)
 
         nameAldreadyExists = !db.execute("SELECT * FROM user WHERE name = ?", username).empty?
         if nameAldreadyExists
-            session[:registrationError] = "The name already exists"
-            return false
+            return "The name already exists"
         end
 
         # Email
         emailCorrectlyFormatted = URI::MailTo::EMAIL_REGEXP.match?(email)
         emailAlreadyExists = !db.execute("SELECT * FROM user WHERE email = ?", email).empty?
         if !emailCorrectlyFormatted
-            session[:registrationError] = "Use a real email adress"
-            return false
+            return "Use a real email adress"
         elsif emailAlreadyExists
-            session[:registrationError] = "That email already exists"
-            return false
+            return "That email already exists"
         end
         # Password
         if password != confirm
-            session[:registrationError] = "Passwords did not match each other"
-            return false
+            return "Passwords did not match each other"
         elsif password.length < 8
-            session[:registrationError] = "Password needs to be 8 characters or more"
-            return false
+            return "Password needs to be 8 characters or more"
         elsif !string_contains_any?(password, "1234567890")
-            session[:registrationError] = "Password needs to contain at least 1 numerical value"
-            return false
+            return "Password needs to contain at least 1 numerical value"
         end
-        return true
+        return nil
     end
 
     # Checks if a tag exists within a category
@@ -317,7 +312,7 @@ module Model
     # @param [String] login The username or email of a user
     # @param [String] password
     #
-    # @return [Boolean] Whether or not the login was successful
+    # @return [String] Error message if one arises
     def authenticate_user(login, password) # Login is email or username
         db = connect_to_db(DB_PATH)
 
@@ -327,15 +322,13 @@ module Model
             userAry = db.execute("SELECT * FROM user WHERE email = ?", login)
             userExists = !userAry.empty?
             unless userExists
-                session[:loginError] = "That email is not registered"
-                return false
+                return "That email is not registered"
             end
         else
             userAry = db.execute("SELECT * FROM user WHERE name = ?", login)
             userExists = !userAry.empty?
             unless userExists
-                session[:loginError] = "That user does not exist"
-                return false
+                return "That user does not exist"
             end
         end
             
@@ -344,15 +337,16 @@ module Model
         pwDigest = user["pwdigest"]
         pwDigest = BCrypt::Password.new(pwDigest)
         unless pwDigest == password
-            session[:registrationError] = "Incorrect password"
-            return false
+            return "Incorrect password"
         end
-        return true
+        return nil
     end
 
     # Logs in a user
     #
     # @param [String] login The username or email of the user
+    #
+    # @return [Integer] The ID of the user
     def login_user(login)
         db = connect_to_db(DB_PATH)
         # Check if login is email or username
@@ -362,7 +356,7 @@ module Model
         else
             user = db.execute("SELECT * FROM user WHERE name = ?", login).first
         end
-        session[:user_id] = user["id"]
+        return user["id"]
     end
 
     # Registers a user
@@ -370,26 +364,28 @@ module Model
     # @param [String] username
     # @param [String] email
     # @param [String] password
+    #
+    # @return [Integer] The user ID
     def register_user(username, email, password)
         db = connect_to_db(DB_PATH)
         pwDigest = BCrypt::Password.create(password)
         db.execute("INSERT INTO user (name, email, pwdigest) VALUES (?, ?, ?)", username, email, pwDigest)
-        login_user(email)
+        return login_user(email)
     end
 
     # Checks if the current user is authorized to alter a category
     #
     # @param [Integer] categoryId
+    # @param [Integer] userId The ID of the user
     #
     # @return [Boolean] Whether or not the user is authorized
-    def authorize_user_category(categoryId)
+    def authorize_user_category(categoryId, userId)
         db = connect_to_db(DB_PATH)
 
-        if session[:user_id] == nil
+        if userId == nil
             return false
         end
-        userIsAdmin = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first["admin"] == 1
-        if (user_is_moderator(categoryId)) or (user_is_admin)
+        if (user_is_moderator(categoryId, userId)) or (user_is_admin(userId))
             return true
         end
         return false
@@ -398,16 +394,17 @@ module Model
     # Checks if the current user is authorized to alter a review
     #
     # @param [Integer] ownerId The owner of the review
-    # @param [Integer] categoryId
+    # @param [Integer] categoryId The ID of the category that the review is posted to
+    # @param [Integer] userId The ID of the user
     #
     # @return [Boolean] Whether or not the user is authorized
-    def authorize_user_review(ownerId, categoryId)
+    def authorize_user_review(ownerId, categoryId, userId)
         db = connect_to_db(DB_PATH)
 
-        if session[:user_id] == nil
+        if userId == nil
             return false
         end
-        if (session[:user_id] == ownerId) or (user_is_moderator(categoryId)) or (user_is_admin)
+        if (userId == ownerId) or (user_is_moderator(categoryId, userId)) or (user_is_admin(userId))
             return true
         end
         return false
@@ -417,16 +414,17 @@ module Model
     #
     # @param [Integer] ownerId The owner of the sub-review
     # @param [Integer] reviewId The id of the review that the sub-review is attached to
+    # @param [Integer] userId The ID of the user
     #
     # @return [Boolean] Whether or not the user is authorized
-    def authorize_user_sub_review(ownerId, reviewId)
+    def authorize_user_sub_review(ownerId, reviewId, userId)
         db = connect_to_db(DB_PATH)
 
-        if session[:user_id] == nil
+        if userId == nil
             return false
         end
         categoryId = db.execute("SELECT * FROM review WHERE id = ?", reviewId).first["category_id"]
-        if (session[:user_id] == ownerId) or (user_is_moderator(categoryId)) or (user_is_admin)
+        if (userId == ownerId) or (user_is_moderator(categoryId, userId)) or (user_is_admin(userId))
             return true
         end
 
@@ -436,25 +434,27 @@ module Model
     # Checks if the current user is a moderator of a given category
     #
     # @param [Integer] categoryId
+    # @param [Integer] userId The ID of the user
     #
     # @return [Boolean]
-    def user_is_moderator(categoryId)
+    def user_is_moderator(categoryId, userId)
         db = connect_to_db(DB_PATH)
         moderatorIds = db.execute("SELECT mod_id FROM moderator_category_relation WHERE category_id = ?", categoryId)
         moderatorIdsArray = moderatorIds.map{|id| id["mod_id"]}
-        return moderatorIdsArray.include?(session[:user_id])
+        return moderatorIdsArray.include?(userId)
     end
 
     # Checks if the current user is the owner of a given review
     #
-    # @param [Integer] reviewId
+    # @param [Integer] reviewId The ID of the review
+    # @param [Integer] userId The ID of the user
     #
     # @return [Boolean]
-    def user_is_review_owner(reviewId)
+    def user_is_review_owner(reviewId, userId)
         db = connect_to_db(DB_PATH)
         review = db.execute("SELECT * FROM review WHERE id = ?", reviewId).first
         ownerId = review["author_id"]
-        return session[:user_id] == ownerId
+        return userId == ownerId
     end
 
     # Gets all reviews within a category
@@ -488,15 +488,17 @@ module SlimHelpers
         db.execute("SELECT * FROM users")
     end
 
-    # Gets the current logged in user's name
+    # Gets the name of a user
+    #
+    # @param [Integer] userId The ID of the user
     #
     # @return [String] The name of the user
-    def get_user
-        if session[:user_id] == nil
+    def get_user(userId)
+        if userId == nil
             return nil
         end
         db = connect_to_db(DB_PATH)
-        user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
+        user = db.execute("SELECT * FROM user WHERE id = ?", userId).first
         return user["name"]
     end
 
@@ -516,33 +518,37 @@ module SlimHelpers
         return db.execute("SELECT * FROM category")
     end
 
-    # Gets all categories that the current logged in user is a moderator of
+    # Gets all categories that a user is a moderator of
+    #
+    # @param [Integer] userId The ID of the user
     #
     # @return [Array<Hash>] The categories
-    def get_moderated_categories
-        if session[:user_id] == nil
+    def get_moderated_categories(userId)
+        if userId == nil
             return nil
         end
         db = connect_to_db(DB_PATH)
-        moderatedCategoryIds = db.execute("SELECT * FROM moderator_category_relation WHERE mod_id = ?", session[:user_id])
+        moderatedCategoryIds = db.execute("SELECT * FROM moderator_category_relation WHERE mod_id = ?", userId)
         moderatedCategoryIds.map!{|hash| hash["category_id"]}
         categories = get_categories
-        if user_is_admin
+        if user_is_admin(userId)
             return categories
         end
         categories.select!{|cat| moderatedCategoryIds.include?(cat["id"])}
         return categories
     end
 
-    # Checks whether or not the current logged user is an admin
+    # Checks whether or not a user is an admin
+    #
+    # @param [Integer] userId The ID of the user
     #
     # @ return [Boolean] Whether or not the current logged user is an admin
-    def user_is_admin
-        if session[:user_id] == nil
+    def user_is_admin(userId)
+        if userId == nil
             return false
         end
         db = connect_to_db(DB_PATH)
-        user = db.execute("SELECT * FROM user WHERE id = ?", session[:user_id]).first
+        user = db.execute("SELECT * FROM user WHERE id = ?", userId).first
         return user["admin"] == 1
     end
 end
